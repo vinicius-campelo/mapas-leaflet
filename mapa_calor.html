@@ -1,0 +1,143 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mapa Goias</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+    <script src="leaflet/lib/Leaflet-heat/dist/leaflet-heat.js"></script>
+    <script src="leaflet/data/dados_goias.geojson"></script>
+    <script src="leaflet/data/meso_goias.geojson"></script>
+    <style>
+
+        #grad1 {
+            /*height: 200px;*/
+            padding-bottom: 90px;
+            padding-right: 25px;
+            background-color: red;
+            background: linear-gradient(to bottom, #f1574c , #f7e55c, #80af7b);
+        }
+
+        .info {
+            padding: 6px 8px;
+            font: 14px/16px Arial, Helvetica, sans-serif;
+            background: white;
+            background: rgba(255,255,255,0.8);
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            border-radius: 5px;
+        }
+
+        .info h4 {
+            margin: 0 0 5px;
+            color: #777;
+        }
+
+        .legend {
+            line-height: 18px;
+            color: #555;
+        }
+
+        .legend i {
+            width: 18px;
+            height: 18px;
+            /*float: left;*/
+            margin-right: 8px;
+            opacity: 0.7;
+        }
+
+    </style>
+
+</head>
+<body>
+    <div id="map" style="height: 500px"></div>
+
+<script>
+
+
+function coutriesStyle(feature){
+        return{
+            fillColor : '#D3D3D3',
+            weight : 2,
+            opacity :1,
+            color :'white',
+            dashArray : 2,
+            fillOpacity : 0.4
+        }
+    }
+
+
+var map = L.map("map").setView([-16.0861, -45.5167], 7);
+		
+        var tiles = L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+            attribution: '© <a href="http://osm.org/copyright">OpenStreetMap</a> contributors',
+            minZoom: 7,
+            maxZoom: 10
+        }).addTo(map);
+
+
+        function onEachFeature(feature, layer) {
+                var popupContent = "<p><b>Informações Gerais:</b></p>";
+
+                if (feature.properties && feature.properties.NOME_MESOR) {
+                    popupContent += '<p><b>Mesoregião: </b> ' + feature.properties.NOME_MESOR;
+                
+                }
+
+                layer.bindPopup(popupContent);
+        }
+
+
+        var mesoGoias =  L.geoJSON(mesoGoias, 
+        { 
+            style : coutriesStyle,
+            onEachFeature: onEachFeature
+
+        }).addTo(map);
+
+
+            $.getJSON("http://localhost:8086/dados/dados_goias.geojson",function(data){
+                    var locations = data.features.map(function(rat) {
+                    var location = rat.geometry.coordinates.reverse();
+                    var long = location[0][0][0][1];
+                    var lat = location[0][0][0][0];
+                        return [long, lat];
+                });
+
+                var heat = L.heatLayer(locations, { 
+                    radius: 30,
+                    blur: 15, 
+                    maxZoom: 5,
+                    max: 6.0,
+
+                    gradient: {
+                        0.4: 'green',
+                        0.5: 'yellow',
+                        1.0: 'red'
+                    }
+                });
+                map.addLayer(heat);
+
+            });
+
+
+            var legend = L.control({position:'bottomright'});
+                legend.onAdd = function(map){
+                    var div = L.DomUtil.create('div', 'info legend');
+                    category = ["> 2.000,000 ", "> 1.000,000 ", "> 500.000 ", "> 200.000 ", "> 50.000 "];
+                    div.innerHTML = '<div><b>População Estimada</b></div>';
+                    div.innerHTML += '<i id="grad1"></i>';
+                    div.innerHTML += '<i style="padding-left: 5px;"> > 3.000,000 </i><br />';
+                        for (var i=0; i < category.length; i++){
+
+                            div.innerHTML += '<i style="padding-left: 38px;">'+ category[i] +'</i><br />';
+                            
+                        }
+                        return div;
+                }
+            legend.addTo(map);
+
+</script>
+</body>
+</html>
